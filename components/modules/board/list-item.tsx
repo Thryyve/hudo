@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { Plus, Trash2, MoreHorizontal } from "lucide-react"
 import { toast } from "sonner"
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
+import { useDroppable } from "@dnd-kit/core"
 import { CardItem } from "@/components/modules/card/card-item"
 import {
   DropdownMenu,
@@ -28,23 +30,23 @@ export function ListItem({ list, onDelete, onUpdate }: ListItemProps) {
   const [title, setTitle] = useState(list.title)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const { setNodeRef } = useDroppable({ id: list.id })
+
+  if (list.cards !== cards && !isAddingCard) {
+    setCards(list.cards)
+  }
+
   const handleAddCard = async () => {
     if (!newCardTitle.trim()) return
-
     setIsSubmitting(true)
     try {
       const res = await fetch("/api/cards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: newCardTitle.trim(),
-          listId: list.id,
-        }),
+        body: JSON.stringify({ title: newCardTitle.trim(), listId: list.id }),
       })
-
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-
       setCards((prev) => [...prev, data])
       setNewCardTitle("")
       setIsAddingCard(false)
@@ -61,16 +63,13 @@ export function ListItem({ list, onDelete, onUpdate }: ListItemProps) {
       setIsEditingTitle(false)
       return
     }
-
     try {
       const res = await fetch(`/api/lists/${list.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.trim() }),
       })
-
       if (!res.ok) throw new Error()
-
       onUpdate(list.id, title.trim())
       setIsEditingTitle(false)
     } catch {
@@ -82,12 +81,8 @@ export function ListItem({ list, onDelete, onUpdate }: ListItemProps) {
 
   const handleDeleteList = async () => {
     try {
-      const res = await fetch(`/api/lists/${list.id}`, {
-        method: "DELETE",
-      })
-
+      const res = await fetch(`/api/lists/${list.id}`, { method: "DELETE" })
       if (!res.ok) throw new Error()
-
       onDelete(list.id)
     } catch {
       toast.error("Failed to delete list")
@@ -105,8 +100,8 @@ export function ListItem({ list, onDelete, onUpdate }: ListItemProps) {
   }
 
   return (
-    <div className="flex-shrink-0 w-72 bg-slate-900 border border-slate-800 rounded-xl flex flex-col max-h-full">
-      {/* List Header */}
+    <div className="flex-shrink-0 w-72 bg-slate-900 border border-slate-800 rounded-xl flex flex-col max-h-[calc(100vh-200px)]">
+      {/* Header */}
       <div className="flex items-center justify-between px-3 py-3 border-b border-slate-800">
         {isEditingTitle ? (
           <input
@@ -131,19 +126,15 @@ export function ListItem({ list, onDelete, onUpdate }: ListItemProps) {
             {title}
           </h3>
         )}
-
         <div className="flex items-center gap-1">
-          <span className="text-xs text-slate-500 mr-1">{cards.length}</span>
+          <span className="text-xs text-slate-500 mr-1">{list.cards.length}</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="text-slate-500 hover:text-white transition-colors p-1 rounded">
                 <MoreHorizontal className="w-4 h-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="bg-slate-900 border-slate-800"
-            >
+            <DropdownMenuContent align="end" className="bg-slate-900 border-slate-800">
               <DropdownMenuItem
                 onClick={handleDeleteList}
                 className="text-red-400 hover:text-red-300 focus:text-red-300 focus:bg-slate-800 cursor-pointer gap-2"
@@ -157,17 +148,21 @@ export function ListItem({ list, onDelete, onUpdate }: ListItemProps) {
       </div>
 
       {/* Cards */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-2">
-        {cards.map((card) => (
-          <CardItem
-            key={card.id}
-            card={card}
-            onDelete={handleCardDelete}
-            onUpdate={handleCardUpdate}
-          />
-        ))}
+      <div ref={setNodeRef} className="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-2 min-h-[40px]">
+        <SortableContext
+          items={list.cards.map((c) => c.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {list.cards.map((card) => (
+            <CardItem
+              key={card.id}
+              card={card}
+              onDelete={handleCardDelete}
+              onUpdate={handleCardUpdate}
+            />
+          ))}
+        </SortableContext>
 
-        {/* Add Card Form */}
         {isAddingCard && (
           <div className="flex flex-col gap-2">
             <textarea
@@ -210,7 +205,7 @@ export function ListItem({ list, onDelete, onUpdate }: ListItemProps) {
         )}
       </div>
 
-      {/* Add Card Button */}
+      {/* Add Card */}
       {!isAddingCard && (
         <button
           onClick={() => setIsAddingCard(true)}
