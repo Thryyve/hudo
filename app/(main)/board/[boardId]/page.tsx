@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Plus, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
@@ -15,6 +15,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core"
 import { arrayMove } from "@dnd-kit/sortable"
+import { io, type Socket } from "socket.io-client"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ListItem } from "@/components/modules/board/list-item"
 import { CardItem } from "@/components/modules/card/card-item"
@@ -38,13 +39,75 @@ export default function BoardPage() {
   const [newListTitle, setNewListTitle] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeCard, setActiveCard] = useState<Card | null>(null)
+  const socketRef = useRef<Socket | null>(null)
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
 
+  // Socket setup
+  useEffect(() => {
+    const socket = io(
+      process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001",
+      { transports: ["websocket"] }
+    )
+    socketRef.current = socket
+
+    socket.on("connect", () => {
+      socket.emit("join-board", boardId)
+    })
+
+    socket.on("card-moved", (data: { cardId: string; listId: string; order: number }) => {
+      setLists((prev) => {
+        const card = prev.flatMap((l) => l.cards).find((c) => c.id === data.cardId)
+        if (!card) return prev
+        return prev.map((list) => {
+          if (list.id === card.listId && list.id !== data.listId) {
+            return { ...list, cards: list.cards.filter((c) => c.id !== data.cardId) }
+          }
+          if (list.id === data.listId) {
+            const exists = list.cards.some((c) => c.id === data.cardId)
+            if (!exists) return { ...list, cards: [...list.cards, { ...card, listId: data.listId }] }
+          }
+          return list
+        })
+      })
+    })
+
+    socket.on("card-created", (data: { listId: string; card: Card }) => {
+      setLists((prev) =>
+        prev.map((list) =>
+          list.id === data.listId
+            ? { ...list, cards: [...list.cards, data.card] }
+            : list
+        )
+      )
+    })
+
+    socket.on("card-deleted", (data: { cardId: string }) => {
+      setLists((prev) =>
+        prev.map((list) => ({
+          ...list,
+          cards: list.cards.filter((c) => c.id !== data.cardId),
+        }))
+      )
+    })
+
+    socket.on("list-created", (data: { list: ListWithCards }) => {
+      setLists((prev) => [...prev, data.list])
+    })
+
+    socket.on("list-deleted", (data: { listId: string }) => {
+      setLists((prev) => prev.filter((l) => l.id !== data.listId))
+    })
+
+    return () => {
+      socket.emit("leave-board", boardId)
+      socket.disconnect()
+    }
+  }, [boardId])
+
+  // Fetch board
   useEffect(() => {
     fetch(`/api/boards/${boardId}`)
       .then((res) => res.json())
@@ -59,20 +122,15 @@ export default function BoardPage() {
   }, [boardId])
 
   const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event
-    const card = lists
-      .flatMap((l) => l.cards)
-      .find((c) => c.id === active.id)
+    const card = lists.flatMap((l) => l.cards).find((c) => c.id === event.active.id)
     if (card) setActiveCard(card)
   }
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event
     if (!over) return
-
     const activeId = active.id as string
     const overId = over.id as string
-
     if (activeId === overId) return
 
     const activeList = lists.find((l) => l.cards.some((c) => c.id === activeId))
@@ -80,8 +138,7 @@ export default function BoardPage() {
       lists.find((l) => l.cards.some((c) => c.id === overId)) ||
       lists.find((l) => l.id === overId)
 
-    if (!activeList || !overList) return
-    if (activeList.id === overList.id) return
+    if (!activeList || !overList || activeList.id === overList.id) return
 
     setLists((prev) => {
       const activeCard = activeList.cards.find((c) => c.id === activeId)!
@@ -100,7 +157,6 @@ export default function BoardPage() {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     setActiveCard(null)
-
     if (!over) return
 
     const activeId = active.id as string
@@ -109,11 +165,9 @@ export default function BoardPage() {
     const activeList = lists.find((l) => l.cards.some((c) => c.id === activeId))
     if (!activeList) return
 
-    // Reorder within same list
     if (activeList.cards.some((c) => c.id === overId)) {
       const oldIndex = activeList.cards.findIndex((c) => c.id === activeId)
       const newIndex = activeList.cards.findIndex((c) => c.id === overId)
-
       setLists((prev) =>
         prev.map((list) => {
           if (list.id !== activeList.id) return list
@@ -122,18 +176,23 @@ export default function BoardPage() {
       )
     }
 
-    // Persist to DB
     const updatedList = lists.find((l) => l.cards.some((c) => c.id === activeId))
     if (!updatedList) return
+
+    const newOrder = updatedList.cards.findIndex((c) => c.id === activeId)
 
     try {
       await fetch(`/api/cards/${activeId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          listId: updatedList.id,
-          order: updatedList.cards.findIndex((c) => c.id === activeId),
-        }),
+        body: JSON.stringify({ listId: updatedList.id, order: newOrder }),
+      })
+
+      socketRef.current?.emit("card-moved", {
+        boardId,
+        cardId: activeId,
+        listId: updatedList.id,
+        order: newOrder,
       })
     } catch {
       toast.error("Failed to save card position")
@@ -154,6 +213,8 @@ export default function BoardPage() {
       setLists((prev) => [...prev, data])
       setNewListTitle("")
       setIsAddingList(false)
+
+      socketRef.current?.emit("list-created", { boardId, list: data })
     } catch {
       toast.error("Failed to add list")
     } finally {
@@ -163,6 +224,7 @@ export default function BoardPage() {
 
   const handleListDelete = (listId: string) => {
     setLists((prev) => prev.filter((l) => l.id !== listId))
+    socketRef.current?.emit("list-deleted", { boardId, listId })
   }
 
   const handleListUpdate = (listId: string, title: string) => {
@@ -191,7 +253,6 @@ export default function BoardPage() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Board Header */}
       <div
         className="px-6 py-4 flex items-center gap-4 border-b border-white/10"
         style={{ backgroundColor: board.color + "33" }}
@@ -208,7 +269,6 @@ export default function BoardPage() {
         </div>
       </div>
 
-      {/* Lists */}
       <div className="flex-1 overflow-x-auto">
         <DndContext
           sensors={sensors}
@@ -223,6 +283,8 @@ export default function BoardPage() {
                 list={list}
                 onDelete={handleListDelete}
                 onUpdate={handleListUpdate}
+                socket={socketRef.current}
+                boardId={boardId}
               />
             ))}
 

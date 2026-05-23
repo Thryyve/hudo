@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { List, Card } from "@prisma/client"
+import type { Socket } from "socket.io-client"
 
 type ListWithCards = List & { cards: Card[] }
 
@@ -20,10 +21,11 @@ interface ListItemProps {
   list: ListWithCards
   onDelete: (listId: string) => void
   onUpdate: (listId: string, title: string) => void
+  socket: Socket | null
+  boardId: string
 }
 
-export function ListItem({ list, onDelete, onUpdate }: ListItemProps) {
-  const [cards, setCards] = useState<Card[]>(list.cards)
+export function ListItem({ list, onDelete, onUpdate, socket, boardId }: ListItemProps) {
   const [isAddingCard, setIsAddingCard] = useState(false)
   const [newCardTitle, setNewCardTitle] = useState("")
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -31,10 +33,6 @@ export function ListItem({ list, onDelete, onUpdate }: ListItemProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { setNodeRef } = useDroppable({ id: list.id })
-
-  if (list.cards !== cards && !isAddingCard) {
-    setCards(list.cards)
-  }
 
   const handleAddCard = async () => {
     if (!newCardTitle.trim()) return
@@ -47,9 +45,10 @@ export function ListItem({ list, onDelete, onUpdate }: ListItemProps) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      setCards((prev) => [...prev, data])
       setNewCardTitle("")
       setIsAddingCard(false)
+
+      socket?.emit("card-created", { boardId, listId: list.id, card: data })
     } catch {
       toast.error("Failed to add card")
     } finally {
@@ -90,18 +89,13 @@ export function ListItem({ list, onDelete, onUpdate }: ListItemProps) {
   }
 
   const handleCardDelete = (cardId: string) => {
-    setCards((prev) => prev.filter((c) => c.id !== cardId))
+    socket?.emit("card-deleted", { boardId, cardId, listId: list.id })
   }
 
-  const handleCardUpdate = (cardId: string, newTitle: string) => {
-    setCards((prev) =>
-      prev.map((c) => (c.id === cardId ? { ...c, title: newTitle } : c))
-    )
-  }
+  const handleCardUpdate = (_cardId: string, _newTitle: string) => {}
 
   return (
     <div className="flex-shrink-0 w-72 bg-slate-900 border border-slate-800 rounded-xl flex flex-col max-h-[calc(100vh-200px)]">
-      {/* Header */}
       <div className="flex items-center justify-between px-3 py-3 border-b border-slate-800">
         {isEditingTitle ? (
           <input
@@ -147,7 +141,6 @@ export function ListItem({ list, onDelete, onUpdate }: ListItemProps) {
         </div>
       </div>
 
-      {/* Cards */}
       <div ref={setNodeRef} className="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-2 min-h-[40px]">
         <SortableContext
           items={list.cards.map((c) => c.id)}
@@ -205,7 +198,6 @@ export function ListItem({ list, onDelete, onUpdate }: ListItemProps) {
         )}
       </div>
 
-      {/* Add Card */}
       {!isAddingCard && (
         <button
           onClick={() => setIsAddingCard(true)}
