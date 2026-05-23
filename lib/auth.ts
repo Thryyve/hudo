@@ -21,6 +21,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   pages: {
     signIn: "/sign-in",
+    error: "/sign-in",
   },
   callbacks: {
     async session({ session, user }) {
@@ -30,4 +31,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session
     },
   },
+  events: {
+    async signIn(message) {
+      console.log("[Auth.js signIn event]", JSON.stringify(message, null, 2))
+    },
+    async createUser(message) {
+      console.log("[Auth.js createUser event]", JSON.stringify(message, null, 2))
+    },
+  },
+  logger: {
+    error(error) {
+      console.error("[Auth.js Error]", JSON.stringify(error, null, 2))
+    },
+    warn(code) {
+      console.warn("[Auth.js Warn]", code)
+    },
+    debug(code, metadata) {
+      console.log("[Auth.js Debug]", code, JSON.stringify(metadata, null, 2))
+    },
+  },
+  debug: true,
 })
