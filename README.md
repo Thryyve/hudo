@@ -1,36 +1,129 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hudo — Team Task Manager
+
+A real-time collaborative task management SaaS built with Next.js, TypeScript, and Socket.io. Organize work with boards, lists, and cards — inspired by Trello.
+
+![Hudo Dashboard](https://placehold.co/1200x630/f8fafc/1e293b?text=Hudo+Task+Manager)
+
+## Features
+
+- **Authentication** — Secure sign in with GitHub and Google via Auth.js v5
+- **Workspaces** — Create and manage team workspaces with role-based access
+- **Boards** — Organize work with color-coded boards inside workspaces
+- **Lists & Cards** — Full CRUD for lists and cards with inline editing
+- **Drag and Drop** — Reorder and move cards across lists with @dnd-kit
+- **Real-time Sync** — Live updates across all connected clients via Socket.io
+- **Responsive UI** — Clean light theme built with Tailwind CSS and shadcn/ui
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript |
+| Auth | Auth.js v5 (NextAuth) |
+| Database | PostgreSQL (Supabase) |
+| ORM | Prisma 6 |
+| Styling | Tailwind CSS + shadcn/ui |
+| Real-time | Socket.io |
+| State | React hooks + Zustand |
+| Drag & Drop | @dnd-kit |
+| Deployment | Vercel + Railway |
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL database (Supabase recommended)
+- GitHub OAuth app
+
+### Installation
+
+1. Clone the repository
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/Thryyve/hudo.git
+cd hudo
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Set up environment variables
 
-## Learn More
+```bash
+cp .env.example .env
+```
 
-To learn more about Next.js, take a look at the following resources:
+Fill in your `.env`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+DATABASE_URL="your-supabase-transaction-pooler-url"
+DIRECT_URL="your-supabase-direct-connection-url"
+AUTH_SECRET="your-auth-secret"
+GITHUB_CLIENT_ID="your-github-client-id"
+GITHUB_CLIENT_SECRET="your-github-client-secret"
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_SOCKET_URL="http://localhost:3001"
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. Set up the database
 
-## Deploy on Vercel
+```bash
+npx prisma migrate dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+5. Run the development servers
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+# Terminal 1 — Next.js
+npm run dev
+
+# Terminal 2 — Socket.io
+npm run socket
+```
+
+Open [http://localhost:3000](http://localhost:3000)
+
+## Project Structure
+hudo/
+├── app/                        # Next.js App Router
+│   ├── (auth)/                 # Auth pages
+│   ├── (main)/                 # Protected app pages
+│   │   ├── dashboard/          # Workspace overview
+│   │   ├── workspace/[id]/     # Workspace boards
+│   │   └── board/[id]/         # Board with lists and cards
+│   └── api/                    # API routes
+├── components/
+│   ├── ui/                     # shadcn primitives
+│   ├── shared/                 # Sidebar, Navbar
+│   └── modules/                # Board, Card, Workspace components
+├── lib/
+│   ├── auth.ts                 # Auth.js config
+│   ├── db.ts                   # Prisma client
+│   └── validations/            # Zod schemas
+├── server/
+│   └── index.ts                # Socket.io server
+├── hooks/                      # Custom React hooks
+├── store/                      # Zustand stores
+├── types/                      # TypeScript types
+└── prisma/
+└── schema.prisma           # Database schema
+
+## Architecture
+
+- **Next.js App Router** with route groups for auth and protected pages
+- **Server-side API routes** with Zod validation and proper error handling
+- **Prisma ORM** with PostgreSQL for type-safe database access
+- **Auth.js** database sessions with OAuth providers
+- **Socket.io** standalone server for real-time events across board rooms
+- **@dnd-kit** for accessible drag and drop with optimistic UI updates
+
+## License
+
+MIT
