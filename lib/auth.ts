@@ -10,12 +10,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: true,
     }),
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: true,
     }),
   ],
   session: {
@@ -31,11 +29,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = user.id
       }
       return session
-    },
-  },
-  logger: {
-    error(error) {
-      console.error("[Auth.js Error]", error)
     },
   },
 })
