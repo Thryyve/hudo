@@ -71,7 +71,7 @@ export function CardItem({ card, onDelete, onUpdate }: CardItemProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className="group bg-slate-800 border border-slate-700 rounded-lg p-3 hover:border-slate-600 transition-colors"
+      className="group bg-white border border-slate-200 rounded-lg p-3 hover:border-slate-300 hover:shadow-sm transition-all"
     >
       {isEditing ? (
         <textarea
@@ -89,7 +89,7 @@ export function CardItem({ card, onDelete, onUpdate }: CardItemProps) {
               setIsEditing(false)
             }
           }}
-          className="w-full bg-transparent text-white text-sm resize-none outline-none"
+          className="w-full bg-transparent text-slate-900 text-sm resize-none outline-none"
           rows={2}
         />
       ) : (
@@ -97,12 +97,12 @@ export function CardItem({ card, onDelete, onUpdate }: CardItemProps) {
           <button
             {...attributes}
             {...listeners}
-            className="text-slate-600 hover:text-slate-400 transition-colors mt-0.5 flex-shrink-0 cursor-grab active:cursor-grabbing"
+            className="text-slate-300 hover:text-slate-500 transition-colors mt-0.5 flex-shrink-0 cursor-grab active:cursor-grabbing"
           >
             <GripVertical className="w-3.5 h-3.5" />
           </button>
           <p
-            className="text-white text-sm cursor-pointer flex-1"
+            className="text-slate-800 text-sm cursor-pointer flex-1"
             onClick={() => setIsEditing(true)}
           >
             {card.title}
@@ -110,7 +110,7 @@ export function CardItem({ card, onDelete, onUpdate }: CardItemProps) {
           <button
             onClick={handleDelete}
             disabled={isDeleting}
-            className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all flex-shrink-0"
+            className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all flex-shrink-0"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>

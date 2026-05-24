@@ -27,7 +27,6 @@ export function CreateWorkspaceModal({ open, onClose }: CreateWorkspaceModalProp
 
   const handleSubmit = async () => {
     if (!name.trim()) return
-
     setIsLoading(true)
     try {
       const res = await fetch("/api/workspaces", {
@@ -35,14 +34,11 @@ export function CreateWorkspaceModal({ open, onClose }: CreateWorkspaceModalProp
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), description: description.trim() }),
       })
-
       const data = await res.json()
-
       if (!res.ok) {
         toast.error(data.error || "Failed to create workspace")
         return
       }
-
       toast.success("Workspace created!")
       onClose()
       setName("")
@@ -58,49 +54,39 @@ export function CreateWorkspaceModal({ open, onClose }: CreateWorkspaceModalProp
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-900 border-slate-800 text-white">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-white">Create Workspace</DialogTitle>
+          <DialogTitle>Create Workspace</DialogTitle>
         </DialogHeader>
-
         <div className="flex flex-col gap-4 mt-2">
           <div className="flex flex-col gap-2">
-            <Label className="text-slate-300">Workspace name</Label>
+            <Label>Workspace name</Label>
             <Input
               placeholder="e.g. My Team"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             />
           </div>
-
           <div className="flex flex-col gap-2">
-            <Label className="text-slate-300">
+            <Label>
               Description{" "}
-              <span className="text-slate-500 font-normal">(optional)</span>
+              <span className="text-slate-400 font-normal">(optional)</span>
             </Label>
             <Textarea
               placeholder="What is this workspace for?"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 resize-none"
+              className="resize-none"
               rows={3}
             />
           </div>
-
           <div className="flex justify-end gap-3 mt-2">
-            <Button
-              variant="ghost"
-              onClick={onClose}
-              className="text-slate-400 hover:text-white"
-            >
-              Cancel
-            </Button>
+            <Button variant="ghost" onClick={onClose}>Cancel</Button>
             <Button
               onClick={handleSubmit}
               disabled={isLoading || !name.trim()}
-              className="bg-white text-slate-950 hover:bg-slate-100"
+              className="bg-slate-900 text-white hover:bg-slate-800"
             >
               {isLoading ? "Creating..." : "Create workspace"}
             </Button>

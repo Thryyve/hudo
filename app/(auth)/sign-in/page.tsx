@@ -9,24 +9,19 @@ export default function SignInPage() {
 
   const handleSignIn = async (provider: string) => {
     setIsLoading(provider)
-
     const csrfRes = await fetch("/api/auth/csrf")
     const { csrfToken } = await csrfRes.json()
-
     const form = document.createElement("form")
     form.method = "POST"
     form.action = `/api/auth/signin/${provider}`
-
     const csrfInput = document.createElement("input")
     csrfInput.type = "hidden"
     csrfInput.name = "csrfToken"
     csrfInput.value = csrfToken
-
     const callbackInput = document.createElement("input")
     callbackInput.type = "hidden"
     callbackInput.name = "callbackUrl"
     callbackInput.value = "/dashboard"
-
     form.appendChild(csrfInput)
     form.appendChild(callbackInput)
     document.body.appendChild(form)
@@ -35,12 +30,12 @@ export default function SignInPage() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col gap-6">
+      <div className="bg-white border border-slate-200 rounded-2xl p-8 flex flex-col gap-6 shadow-sm">
         <div className="flex flex-col gap-1 text-center">
-          <Link href="/" className="text-2xl font-bold text-white tracking-tight">
+          <Link href="/" className="text-2xl font-bold text-slate-900 tracking-tight">
             Hudo
           </Link>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-slate-500 text-sm mt-1">
             Sign in to your workspace
           </p>
         </div>
@@ -49,11 +44,12 @@ export default function SignInPage() {
           <Button
             onClick={() => handleSignIn("github")}
             disabled={!!isLoading}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 h-11"
+            variant="outline"
+            className="w-full h-11 border-slate-200 text-slate-700 hover:bg-slate-50"
           >
             {isLoading === "github" ? (
               <span className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-slate-400 border-t-white rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" />
                 Connecting...
               </span>
             ) : (
@@ -69,11 +65,12 @@ export default function SignInPage() {
           <Button
             onClick={() => handleSignIn("google")}
             disabled={!!isLoading}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 h-11"
+            variant="outline"
+            className="w-full h-11 border-slate-200 text-slate-700 hover:bg-slate-50"
           >
             {isLoading === "google" ? (
               <span className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-slate-400 border-t-white rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" />
                 Connecting...
               </span>
             ) : (
@@ -90,7 +87,7 @@ export default function SignInPage() {
           </Button>
         </div>
 
-        <p className="text-slate-500 text-xs text-center">
+        <p className="text-slate-400 text-xs text-center">
           By signing in, you agree to our terms of service.
         </p>
       </div>
