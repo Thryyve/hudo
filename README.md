@@ -1,29 +1,21 @@
-# Hudo
+# Hudo — Team Task Manager
 
 A real-time collaborative task management SaaS. Organize your team's work with boards, lists, and cards — with live updates across all connected clients.
 
-**Live Demo:** [hudo.vercel.app](https://hudo.vercel.app)
-
----
-
-## Screenshots
-
-> Dashboard · Workspace · Board
-
-![Hudo](https://placehold.co/1200x600/f8fafc/0f172a?text=Hudo+—+Team+Task+Manager)
+🔗 **Live Demo:** [hudo.vercel.app](https://hudo.vercel.app)
 
 ---
 
 ## Features
 
-- **Authentication** — Sign in with GitHub or Google via Auth.js v5
-- **Workspaces** — Create workspaces, invite members by email, manage roles
-- **Boards** — Color-coded boards inside each workspace
-- **Lists & Cards** — Full CRUD with inline editing and instant feedback
-- **Drag and Drop** — Reorder cards within lists and move them across lists
-- **Real-time Sync** — All connected clients see changes instantly via Socket.io
-- **Role-based Access** — Owner, Admin, and Member roles per workspace
-- **Responsive UI** — Clean light theme, works on all screen sizes
+- 🔐 **Authentication** — Sign in with GitHub or Google via Auth.js v5
+- 🏢 **Workspaces** — Create workspaces, invite members by email, manage roles
+- 📋 **Boards** — Color-coded boards inside each workspace
+- ✅ **Lists & Cards** — Full CRUD with inline editing
+- 🖱️ **Drag and Drop** — Reorder cards and move them across lists
+- ⚡ **Real-time Sync** — All connected clients see changes instantly via Socket.io
+- 👥 **Role-based Access** — Owner, Admin, and Member roles per workspace
+- 📱 **Responsive UI** — Clean light theme, works on all screen sizes
 
 ---
 
@@ -57,11 +49,10 @@ A real-time collaborative task management SaaS. Organize your team's work with b
 └──────────────────────────────────────────────────┘
 WebSocket connection
 
-**Key decisions:**
+Key decisions:
 - App Router with route groups `(auth)` and `(main)` for clean separation
 - Database sessions via Auth.js + Prisma adapter for secure, persistent auth
 - Standalone Socket.io server separate from Next.js for true WebSocket support
-- All state managed at the board level and passed down — no unnecessary re-renders
 - Zod validation on every API route with proper HTTP status codes
 
 ---
@@ -74,8 +65,6 @@ Board
 List
 │
 Card
-│
-Activity
 
 ---
 
@@ -85,8 +74,7 @@ Activity
 
 - Node.js 18+
 - PostgreSQL database (Supabase recommended)
-- GitHub OAuth app credentials
-- Google OAuth app credentials (optional)
+- GitHub OAuth credentials
 
 ### Installation
 
@@ -166,20 +154,15 @@ hudo/
 │   ├── ui/                     # shadcn/ui primitives
 │   ├── shared/                 # Sidebar, Navbar
 │   └── modules/                # Feature components
-│       ├── board/              # Board, List, Create modal
-│       ├── card/               # Card item
-│       └── workspace/          # Workspace, Invite modals
 ├── lib/
 │   ├── auth.ts                 # Auth.js configuration
 │   ├── db.ts                   # Prisma client singleton
 │   └── validations/            # Zod schemas
 ├── server/
 │   └── index.ts                # Standalone Socket.io server
-├── hooks/                      # Custom React hooks
 ├── types/                      # Global TypeScript types
 └── prisma/
-├── schema.prisma            # Database schema
-└── migrations/             # Migration history
+└── schema.prisma           # Database schema
 
 ---
 
@@ -191,7 +174,7 @@ hudo/
 | POST | `/api/workspaces` | Create workspace |
 | GET | `/api/workspaces/:id` | Get workspace with boards |
 | POST | `/api/workspaces/:id/invite` | Invite member by email |
-| DELETE | `/api/workspaces/:id/members/:memberId` | Remove member |
+| DELETE | `/api/workspaces/:id/members/:id` | Remove member |
 | POST | `/api/boards` | Create board |
 | GET | `/api/boards/:id` | Get board with lists and cards |
 | DELETE | `/api/boards/:id` | Delete board |
@@ -199,14 +182,12 @@ hudo/
 | PATCH | `/api/lists/:id` | Update list title |
 | DELETE | `/api/lists/:id` | Delete list |
 | POST | `/api/cards` | Create card |
-| PATCH | `/api/cards/:id` | Update card (title, order, listId) |
+| PATCH | `/api/cards/:id` | Update card |
 | DELETE | `/api/cards/:id` | Delete card |
 
 ---
 
 ## Real-time Events
-
-The Socket.io server broadcasts these events to all clients in the same board room:
 
 | Event | Trigger | Payload |
 |---|---|---|
@@ -226,23 +207,10 @@ The Socket.io server broadcasts these events to all clients in the same board ro
 | Render | Socket.io server | Free |
 | Supabase | PostgreSQL database | Free |
 
-**Note:** Render's free tier spins down after 15 minutes of inactivity. The first real-time connection after a period of inactivity may take ~30 seconds to establish while the server warms up.
-
----
-
-## Local Development Notes
-
-- Prisma migrations use `DIRECT_URL` (direct connection) and the app uses `DATABASE_URL` (transaction pooler) for Supabase compatibility
-- Auth.js v5 uses database sessions — all session data is stored in PostgreSQL
-- The Socket.io server runs on port 3001 separately from Next.js on port 3000
-- `allowDangerousEmailAccountLinking: true` is set to allow the same email to sign in with both GitHub and Google
+> **Note:** Render's free tier spins down after 15 minutes of inactivity. The first real-time connection may take ~30 seconds on cold start.
 
 ---
 
 ## License
 
-MIT
-
----
-
-Built by [Aayam Sinha](https://github.com/Thryyve)
+MIT — built by [Aayam Sinha](https://github.com/Thryyve)
