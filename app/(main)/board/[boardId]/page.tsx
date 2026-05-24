@@ -57,16 +57,25 @@ export default function BoardPage() {
     )
     socketRef.current = socket
     socket.on("connect", () => { socket.emit("join-board", boardId) })
-    socket.on("card-moved", (data: { cardId: string; listId: string }) => {
+    socket.on("card-moved", (data: { cardId: string; listId: string; order: number }) => {
       setLists((prev) => {
-        const card = prev.flatMap((l) => l.cards).find((c) => c.id === data.cardId)
-        if (!card) return prev
-        return prev.map((list) => {
-          if (list.id === card.listId && list.id !== data.listId)
-            return { ...list, cards: list.cards.filter((c) => c.id !== data.cardId) }
+        // Find the card in any list
+        let movedCard = prev.flatMap((l) => l.cards).find((c) => c.id === data.cardId)
+        if (!movedCard) return prev
+
+        // Remove from all lists first
+        const listsWithoutCard = prev.map((list) => ({
+          ...list,
+          cards: list.cards.filter((c) => c.id !== data.cardId),
+        }))
+
+        // Add to target list at correct position
+        return listsWithoutCard.map((list) => {
           if (list.id === data.listId) {
-            const exists = list.cards.some((c) => c.id === data.cardId)
-            if (!exists) return { ...list, cards: [...list.cards, { ...card, listId: data.listId }] }
+            const updatedCard = { ...movedCard!, listId: data.listId }
+            const newCards = [...list.cards]
+            newCards.splice(data.order, 0, updatedCard)
+            return { ...list, cards: newCards }
           }
           return list
         })
