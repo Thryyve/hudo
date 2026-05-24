@@ -1,11 +1,26 @@
 import { createServer } from "http"
 import { Server } from "socket.io"
 
-const httpServer = createServer()
+const httpServer = createServer((req, res) => {
+  // Health check endpoint for Railway
+  if (req.url === "/" || req.url === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" })
+    res.end(JSON.stringify({ status: "ok", service: "hudo-socket" }))
+    return
+  }
+  res.writeHead(404)
+  res.end()
+})
+
+const allowedOrigins = [
+  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  "https://hudo.vercel.app",
+  /\.vercel\.app$/,
+]
 
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
   },
 })
@@ -13,19 +28,15 @@ const io = new Server(httpServer, {
 io.on("connection", (socket) => {
   console.log(`[Socket] Client connected: ${socket.id}`)
 
-  // Join a board room
   socket.on("join-board", (boardId: string) => {
     socket.join(boardId)
     console.log(`[Socket] ${socket.id} joined board: ${boardId}`)
   })
 
-  // Leave a board room
   socket.on("leave-board", (boardId: string) => {
     socket.leave(boardId)
-    console.log(`[Socket] ${socket.id} left board: ${boardId}`)
   })
 
-  // Card moved
   socket.on("card-moved", (data: {
     boardId: string
     cardId: string
@@ -35,7 +46,6 @@ io.on("connection", (socket) => {
     socket.to(data.boardId).emit("card-moved", data)
   })
 
-  // Card created
   socket.on("card-created", (data: {
     boardId: string
     listId: string
@@ -44,7 +54,6 @@ io.on("connection", (socket) => {
     socket.to(data.boardId).emit("card-created", data)
   })
 
-  // Card deleted
   socket.on("card-deleted", (data: {
     boardId: string
     cardId: string
@@ -53,7 +62,6 @@ io.on("connection", (socket) => {
     socket.to(data.boardId).emit("card-deleted", data)
   })
 
-  // List created
   socket.on("list-created", (data: {
     boardId: string
     list: unknown
@@ -61,7 +69,6 @@ io.on("connection", (socket) => {
     socket.to(data.boardId).emit("list-created", data)
   })
 
-  // List deleted
   socket.on("list-deleted", (data: {
     boardId: string
     listId: string
@@ -74,7 +81,7 @@ io.on("connection", (socket) => {
   })
 })
 
-const PORT = process.env.SOCKET_PORT || 3001
+const PORT = process.env.PORT || 3001
 httpServer.listen(PORT, () => {
   console.log(`[Socket] Server running on port ${PORT}`)
 })
