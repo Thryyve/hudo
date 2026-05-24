@@ -2,22 +2,34 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
-import { Plus, Layout } from "lucide-react"
+import { Plus, Layout, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CreateBoardModal } from "@/components/modules/board/create-board-modal"
-import type { WorkspaceWithMembers } from "@/types"
-import type { Board } from "@prisma/client"
+import { InviteMemberModal } from "@/components/modules/workspace/invite-member-modal"
+import type { WorkspaceMember, User, Board } from "@prisma/client"
 
-type WorkspaceWithBoards = WorkspaceWithMembers & { boards: Board[] }
+type MemberWithUser = WorkspaceMember & { user: User }
+type WorkspaceWithDetails = {
+  id: string
+  name: string
+  description: string | null
+  ownerId: string
+  members: MemberWithUser[]
+  boards: Board[]
+}
 
 export default function WorkspacePage() {
   const params = useParams()
+  const { data: session } = useSession()
   const workspaceId = params.workspaceId as string
-  const [workspace, setWorkspace] = useState<WorkspaceWithBoards | null>(null)
+
+  const [workspace, setWorkspace] = useState<WorkspaceWithDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateBoard, setShowCreateBoard] = useState(false)
+  const [showMembersModal, setShowMembersModal] = useState(false)
 
   useEffect(() => {
     fetch(`/api/workspaces/${workspaceId}`)
@@ -26,6 +38,20 @@ export default function WorkspacePage() {
       .catch(console.error)
       .finally(() => setIsLoading(false))
   }, [workspaceId])
+
+  const handleMemberAdded = (member: MemberWithUser) => {
+    setWorkspace((prev) =>
+      prev ? { ...prev, members: [...prev.members, member] } : prev
+    )
+  }
+
+  const handleMemberRemoved = (memberId: string) => {
+    setWorkspace((prev) =>
+      prev
+        ? { ...prev, members: prev.members.filter((m) => m.id !== memberId) }
+        : prev
+    )
+  }
 
   if (isLoading) {
     return (
@@ -51,7 +77,8 @@ export default function WorkspacePage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-lg font-bold text-slate-700">
             {workspace.name[0].toUpperCase()}
@@ -63,16 +90,30 @@ export default function WorkspacePage() {
             )}
           </div>
         </div>
-        <Button
-          onClick={() => setShowCreateBoard(true)}
-          className="bg-slate-900 text-white hover:bg-slate-800 gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          New Board
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowMembersModal(true)}
+            variant="outline"
+            className="gap-2 border-slate-200 text-slate-600 hover:text-slate-900"
+          >
+            <Users className="w-4 h-4" />
+            Members ({workspace.members.length})
+          </Button>
+          <Button
+            onClick={() => setShowCreateBoard(true)}
+            className="bg-slate-900 text-white hover:bg-slate-800 gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New Board
+          </Button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-8">
+      {/* Members avatars */}
+      <div
+        className="flex items-center gap-2 mb-8 cursor-pointer group w-fit"
+        onClick={() => setShowMembersModal(true)}
+      >
         <div className="flex -space-x-2">
           {workspace.members.slice(0, 5).map((member) => (
             <div
@@ -84,12 +125,14 @@ export default function WorkspacePage() {
             </div>
           ))}
         </div>
-        <span className="text-slate-500 text-sm">
-          {workspace.members.length}{" "}
-          {workspace.members.length === 1 ? "member" : "members"}
+        <span className="text-slate-400 text-sm group-hover:text-slate-600 transition-colors">
+          {workspace.members.length > 5
+            ? `+${workspace.members.length - 5} more`
+            : "Manage members"}
         </span>
       </div>
 
+      {/* Boards */}
       {workspace.boards.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
@@ -139,6 +182,18 @@ export default function WorkspacePage() {
         onClose={() => setShowCreateBoard(false)}
         workspaceId={workspaceId}
       />
+
+      {session?.user && (
+        <InviteMemberModal
+          open={showMembersModal}
+          onClose={() => setShowMembersModal(false)}
+          workspaceId={workspaceId}
+          members={workspace.members}
+          currentUserId={session.user.id as string}
+          onMemberAdded={handleMemberAdded}
+          onMemberRemoved={handleMemberRemoved}
+        />
+      )}
     </div>
   )
 }
