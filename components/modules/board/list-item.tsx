@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Plus, Trash2, MoreHorizontal } from "lucide-react"
 import { toast } from "sonner"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
@@ -33,10 +33,6 @@ export function ListItem({ list, onDelete, onUpdate, onCardAdd, onCardDelete, so
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [title, setTitle] = useState(list.title)
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  useEffect(() => {
-    setTitle(list.title)
-  }, [list.title])
 
   const { setNodeRef } = useDroppable({ id: list.id })
 
@@ -99,7 +95,7 @@ export function ListItem({ list, onDelete, onUpdate, onCardAdd, onCardDelete, so
     socket?.emit("card-deleted", { boardId, cardId, listId: list.id })
   }
 
-  const handleCardUpdate = (_cardId: string, _newTitle: string) => {}
+  const handleCardUpdate = () => {}
 
   return (
     <div className="flex-shrink-0 w-72 bg-slate-100 rounded-xl flex flex-col max-h-[calc(100vh-160px)]">

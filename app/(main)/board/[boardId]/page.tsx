@@ -27,6 +27,8 @@ type BoardWithLists = Board & {
   workspace: { id: string; name: string }
 }
 
+let boardSocket: Socket | null = null
+
 export default function BoardPage() {
   const params = useParams()
   const router = useRouter()
@@ -39,7 +41,6 @@ export default function BoardPage() {
   const [newListTitle, setNewListTitle] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeCard, setActiveCard] = useState<Card | null>(null)
-  const socketRef = useRef<Socket | null>(null)
   const listsRef = useRef<ListWithCards[]>([])
 
   useEffect(() => {
@@ -51,16 +52,20 @@ export default function BoardPage() {
   )
 
   useEffect(() => {
-    const socket = io(
-      process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001",
-      { transports: ["websocket"] }
-    )
-    socketRef.current = socket
+    if (!boardSocket) {
+      boardSocket = io(
+        process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001",
+        { transports: ["websocket"] }
+      )
+    }
+
+    const socket = boardSocket
+
     socket.on("connect", () => { socket.emit("join-board", boardId) })
     socket.on("card-moved", (data: { cardId: string; listId: string; order: number }) => {
       setLists((prev) => {
         // Find the card in any list
-        let movedCard = prev.flatMap((l) => l.cards).find((c) => c.id === data.cardId)
+        const movedCard = prev.flatMap((l) => l.cards).find((c) => c.id === data.cardId)
         if (!movedCard) return prev
 
         // Remove from all lists first
@@ -72,7 +77,7 @@ export default function BoardPage() {
         // Add to target list at correct position
         return listsWithoutCard.map((list) => {
           if (list.id === data.listId) {
-            const updatedCard = { ...movedCard!, listId: data.listId }
+            const updatedCard = { ...movedCard, listId: data.listId }
             const newCards = [...list.cards]
             newCards.splice(data.order, 0, updatedCard)
             return { ...list, cards: newCards }
@@ -106,6 +111,7 @@ export default function BoardPage() {
     return () => {
       socket.emit("leave-board", boardId)
       socket.disconnect()
+      boardSocket = null
     }
   }, [boardId])
 
@@ -205,7 +211,7 @@ export default function BoardPage() {
             })
           )
         )
-        socketRef.current?.emit("card-moved", {
+        boardSocket?.emit("card-moved", {
           boardId,
           cardId: activeId,
           listId: activeList.id,
@@ -230,7 +236,7 @@ export default function BoardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ listId: newList.id, order: newOrder }),
       })
-      socketRef.current?.emit("card-moved", {
+      boardSocket?.emit("card-moved", {
         boardId,
         cardId: activeId,
         listId: newList.id,
@@ -255,7 +261,7 @@ export default function BoardPage() {
       setLists((prev) => [...prev, data])
       setNewListTitle("")
       setIsAddingList(false)
-      socketRef.current?.emit("list-created", { boardId, list: data })
+      boardSocket?.emit("list-created", { boardId, list: data })
     } catch {
       toast.error("Failed to add list")
     } finally {
@@ -265,7 +271,7 @@ export default function BoardPage() {
 
   const handleListDelete = (listId: string) => {
     setLists((prev) => prev.filter((l) => l.id !== listId))
-    socketRef.current?.emit("list-deleted", { boardId, listId })
+    boardSocket?.emit("list-deleted", { boardId, listId })
   }
 
   const handleListUpdate = (listId: string, title: string) => {
@@ -324,7 +330,7 @@ export default function BoardPage() {
                 onUpdate={handleListUpdate}
                 onCardAdd={handleCardAdd}
                 onCardDelete={handleCardDelete}
-                socket={socketRef.current}
+                socket={boardSocket}
                 boardId={boardId}
               />
             ))}

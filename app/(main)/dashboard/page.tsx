@@ -56,7 +56,7 @@ export default function DashboardPage() {
           </div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">No workspaces yet</h2>
           <p className="text-slate-500 text-sm mb-6 max-w-xs">
-            Create your first workspace to start organizing your team's work.
+            Create your first workspace to start organizing your team&apos;s work.
           </p>
           <Button
             onClick={() => setShowCreateModal(true)}

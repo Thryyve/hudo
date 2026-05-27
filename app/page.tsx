@@ -29,7 +29,7 @@ export default function LandingPage() {
         </div>
 
         <h1 className="text-5xl sm:text-6xl font-bold tracking-tight max-w-3xl leading-tight text-slate-900">
-          Your team's work,{" "}
+          Your team&apos;s work,{" "}
           <span className="text-slate-400">beautifully organized.</span>
         </h1>
 
