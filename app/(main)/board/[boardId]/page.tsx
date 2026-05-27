@@ -42,6 +42,7 @@ export default function BoardPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeCard, setActiveCard] = useState<Card | null>(null)
   const listsRef = useRef<ListWithCards[]>([])
+  const dragSourceListIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     listsRef.current = lists
@@ -145,7 +146,10 @@ export default function BoardPage() {
 
   const handleDragStart = (event: DragStartEvent) => {
     const card = listsRef.current.flatMap((l) => l.cards).find((c) => c.id === event.active.id)
-    if (card) setActiveCard(card)
+    if (!card) return
+    const sourceList = listsRef.current.find((l) => l.cards.some((c) => c.id === card.id))
+    dragSourceListIdRef.current = sourceList?.id ?? card.listId
+    setActiveCard(card)
   }
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -165,9 +169,10 @@ export default function BoardPage() {
 
     setLists((prev) => {
       const activeCard = prev.flatMap((l) => l.cards).find((c) => c.id === activeId)!
+      const movedCard = { ...activeCard, listId: overList.id }
       return prev.map((list) => {
         if (list.id === activeList.id) return { ...list, cards: list.cards.filter((c) => c.id !== activeId) }
-        if (list.id === overList.id) return { ...list, cards: [...list.cards, activeCard] }
+        if (list.id === overList.id) return { ...list, cards: [...list.cards, movedCard] }
         return list
       })
     })
@@ -176,20 +181,30 @@ export default function BoardPage() {
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event
     setActiveCard(null)
+    const sourceListId = dragSourceListIdRef.current
+    dragSourceListIdRef.current = null
+
     if (!over) return
 
     const activeId = active.id as string
     const overId = over.id as string
 
     const currentLists = listsRef.current
+    const overList =
+      currentLists.find((l) => l.id === overId) ||
+      currentLists.find((l) => l.cards.some((c) => c.id === overId))
+    if (!overList) return
+
     const activeList = currentLists.find((l) => l.cards.some((c) => c.id === activeId))
     if (!activeList) return
 
-    // Reorder within same list
-    if (activeList.cards.some((c) => c.id === overId)) {
+    const isCrossList = sourceListId !== null && sourceListId !== overList.id
+
+    if (!isCrossList) {
+      if (!activeList.cards.some((c) => c.id === overId)) return
+
       const oldIndex = activeList.cards.findIndex((c) => c.id === activeId)
       const newIndex = activeList.cards.findIndex((c) => c.id === overId)
-
       if (oldIndex === newIndex) return
 
       const reordered = arrayMove(activeList.cards, oldIndex, newIndex)
@@ -200,9 +215,8 @@ export default function BoardPage() {
         )
       )
 
-      // Save all reordered cards to DB
       try {
-        await Promise.all(
+        const results = await Promise.all(
           reordered.map((card, index) =>
             fetch(`/api/cards/${card.id}`, {
               method: "PATCH",
@@ -211,6 +225,7 @@ export default function BoardPage() {
             })
           )
         )
+        if (results.some((r) => !r.ok)) throw new Error()
         boardSocket?.emit("card-moved", {
           boardId,
           cardId: activeId,
@@ -223,23 +238,40 @@ export default function BoardPage() {
       return
     }
 
-    // Card moved to different list — already handled in handleDragOver
-    // Just persist the new listId
-    const newList = currentLists.find((l) => l.id === overId) ||
-      currentLists.find((l) => l.cards.some((c) => c.id === overId))
-    if (!newList) return
+    const destWithoutActive = overList.cards.filter((c) => c.id !== activeId)
+    const newOrder = overList.cards.some((c) => c.id === overId)
+      ? destWithoutActive.findIndex((c) => c.id === overId)
+      : destWithoutActive.length
+
+    const card = currentLists.flatMap((l) => l.cards).find((c) => c.id === activeId)
+    if (!card) return
+
+    const updatedCard = { ...card, listId: overList.id }
+
+    setLists((prev) => {
+      const listsWithoutCard = prev.map((list) => ({
+        ...list,
+        cards: list.cards.filter((c) => c.id !== activeId),
+      }))
+      return listsWithoutCard.map((list) => {
+        if (list.id !== overList.id) return list
+        const cards = [...list.cards]
+        cards.splice(newOrder, 0, updatedCard)
+        return { ...list, cards }
+      })
+    })
 
     try {
-      const newOrder = newList.cards.findIndex((c) => c.id === activeId)
-      await fetch(`/api/cards/${activeId}`, {
+      const res = await fetch(`/api/cards/${activeId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ listId: newList.id, order: newOrder }),
+        body: JSON.stringify({ listId: overList.id, order: newOrder }),
       })
+      if (!res.ok) throw new Error()
       boardSocket?.emit("card-moved", {
         boardId,
         cardId: activeId,
-        listId: newList.id,
+        listId: overList.id,
         order: newOrder,
       })
     } catch {
