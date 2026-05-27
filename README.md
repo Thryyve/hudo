@@ -4,7 +4,7 @@
 
 Hudo lets teams organize work in workspaces, boards, lists, and cards — with drag-and-drop ordering and live updates across every connected client. Sign in with GitHub or Google via Auth.js, with database-backed sessions so every API route and board action stays protected. The UI is fast, clean, and built around real collaboration flows.
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](./package.json)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](./LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16.2.6-000000?style=flat-square&logo=next.js)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19.2.4-61dafb?style=flat-square&logo=react)](https://react.dev)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-4169e1?style=flat-square&logo=postgresql)](https://supabase.com)
@@ -14,15 +14,18 @@ Hudo lets teams organize work in workspaces, boards, lists, and cards — with d
 
 ---
 
-<!-- Add a screenshot or demo GIF here — recommended size: 1280×720 -->
 ## 📸 Screenshots
 
-| Dashboard | Kanban Board |
+| Landing Page | Dashboard |
 |---|---|
-| ![Dashboard](./docs/dashboard-demo.png) | ![Kanban Board](./docs/board-demo.png) |
+| ![Landing Page](./docs/landing.png) | ![Dashboard](./docs/dashboard.png) |
+
+| Workspace | Kanban Board |
+|---|---|
+| ![Workspace](./docs/workspace.png) | ![Kanban Board](./docs/board.png) |
 
 🌐 **Live Demo:** [hudo.vercel.app](https://hudo.vercel.app)  
-⚡ **Real-time Server:** Deploy the `server/` Socket.io service separately (e.g. Render) and set `NEXT_PUBLIC_SOCKET_URL` on Vercel
+⚡ **Socket Server:** [hudo-socket.onrender.com](https://hudo-socket.onrender.com)
 
 ---
 
@@ -183,7 +186,7 @@ npm run start   # runs socket server via package.json "start" script
 npx next start
 ```
 
-> **Note:** In production, deploy the Next.js app and the Socket.io server as separate services. The `start` script runs `server/index.ts`; host the Next.js app on Vercel (or similar) with `next build` + platform start command.
+> **Note:** In production, deploy the Next.js app on Vercel and the Socket.io server separately on Render. The `start` script runs `server/index.ts`; host the Next.js app on Vercel (or similar) with `next build` + platform start command.
 
 ---
 
@@ -264,18 +267,6 @@ Clients connect to the Socket.io server, join a board room, and broadcast change
 | `list-deleted` | `list-deleted` | `{ boardId, listId }` |
 
 Payloads are validated with Zod on the server. Sockets must be in the board room before broadcasting.
-
----
-
-## 🧪 Testing
-
-This project uses **ESLint** (Next.js config) for static analysis. Run:
-
-```bash
-npm run lint
-```
-
-Automated unit or E2E tests are not configured yet — contributions welcome.
 
 ---
 
