@@ -76,7 +76,6 @@ const ListDeletedSchema = z.object({
 const socketBoardMap = new Map<string, Set<string>>()
 
 io.on("connection", (socket) => {
-  console.log(`[Socket] Connected: ${socket.id}`)
   socketBoardMap.set(socket.id, new Set())
 
   socket.on("join-board", (boardId: unknown) => {
@@ -87,7 +86,6 @@ io.on("connection", (socket) => {
     }
     socket.join(result.data)
     socketBoardMap.get(socket.id)?.add(result.data)
-    console.log(`[Socket] ${socket.id} joined board: ${result.data}`)
   })
 
   socket.on("leave-board", (boardId: unknown) => {
@@ -170,11 +168,9 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     socketBoardMap.delete(socket.id)
-    console.log(`[Socket] Disconnected: ${socket.id}`)
   })
 })
 
 const PORT = process.env.PORT || 3001
 httpServer.listen(PORT, () => {
-  console.log(`[Socket] Running on port ${PORT}`)
 })
