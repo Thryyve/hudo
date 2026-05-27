@@ -125,12 +125,11 @@ npx prisma migrate dev
 **5. Run the development servers**
 
 ```bash
-# Terminal 1 — Next.js app
-npm run dev
-
-# Terminal 2 — Socket.io server
-npm run socket
+# Run Next.js and the Socket.io server together
+npm run dev:all
 ```
+
+Or run them in separate terminals with `npm run dev` and `npm run socket`.
 
 Open [http://localhost:3000](http://localhost:3000)
 

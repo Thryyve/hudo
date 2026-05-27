@@ -4,7 +4,7 @@ import { z } from "zod"
 
 const httpServer = createServer((req, res) => {
   res.writeHead(200, { "Content-Type": "application/json" })
-  res.end(JSON.stringify({ status: "ok", service: "hudo-socket" }))
+  res.end(JSON.stringify({ status: "ok", service: "hudo" }))
 })
 
 const allowedOrigins = [
